@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: smog-monitor
+  cancel-in-progress: false
+
 jobs:
   monitor:
     runs-on: ubuntu-latest
@@ -21,9 +25,21 @@ jobs:
         with:
           python-version: '3.12'
 
-      
+      - name: Przywroc stan alarmu
+        uses: actions/cache/restore@v4
+        with:
+          path: alarm_state.json
+          key: smog-state-${{ github.run_id }}
+          restore-keys: |
+            smog-state-
+
       - name: Sprawdz smog
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: python smog.py
 
+      - name: Zapisz stan alarmu
+        uses: actions/cache/save@v4
+        with:
+          path: alarm_state.json
+          key: smog-state-${{ github.run_id }}
